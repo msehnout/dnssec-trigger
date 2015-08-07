@@ -103,6 +103,10 @@ struct cfg {
 	 * already failed */
 	int auto_insecure_mode;
 
+	/** Any custom command that should be executed in case of
+	 * switch to the insecure mode */
+	char* on_insecure_command;
+
 	/** if we should perform version check (and ask user to update)
 	 * enabled on windows and osx. */
 	int check_updates;

@@ -138,6 +138,12 @@ used directly by the system. Also the dnssec-trigger panel will not
 query the user for the decision whether to switch to the insecure mode.
 The default is no.
 .TP
+.B on\-insecure\-command: \fR""
+The command that is run when dnssec-trigger switches to the insecure mode.
+This may be handy mainly when automatic switch to insecure mode is enabled.
+The "" empty string turns off this feature and no command gets run. By default
+no command is run.
+.TP
 .B login\-command: \fR"@login_command@"
 The command that is run when the user clicks Login on the no web access
 dialog.  That is supposedly a web browser, that is aimed to open some url

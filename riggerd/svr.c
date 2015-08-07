@@ -704,7 +704,16 @@ void persist_cmd_insecure(int val)
 	if(svr->res_state == res_dark) {
 		if(!was_insecure && val) {
 			/* set resolv.conf to the DHCP IP list */
+			verbose(VERB_OPS, "Switch to insecure mode - using DHCP IP list");
 			hook_resolv_iplist(svr->cfg, svr->probes);
+			/* execute command specified to be run on switch to insecure mode */
+			if(svr->cfg->on_insecure_command) {
+				verbose(VERB_OPS, "Executing on-insecure-command command");
+				if(system(svr->cfg->on_insecure_command) == -1) {
+					log_err("Execution of on-insecure-command failed: %s",
+							strerror(errno));
+				}
+			}
 		} else if(was_insecure && !val) {
 			/* set resolv.conf to 127.0.0.1 */
 			hook_resolv_localhost(svr->cfg);

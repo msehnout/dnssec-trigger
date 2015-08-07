@@ -377,6 +377,8 @@ keyword(struct cfg* cfg, char* p)
 		bool_arg(&cfg->check_updates, p+14);
 	} else if(strncmp(p, "auto-insecure:", 14) == 0) {
 		bool_arg(&cfg->auto_insecure_mode, p+14);
+	} else if(strncmp(p, "on-insecure-command:", 20) == 0) {
+		str_arg(&cfg->on_insecure_command, p+20);
 	} else {
 		return 0;
 	}
@@ -431,6 +433,7 @@ struct cfg* cfg_create(const char* cfgfile)
 	cfg->resolvconf = strdup("/etc/resolv.conf");
 	cfg->check_updates = (strcmp(CHECK_UPDATES, "yes")==0);
 	cfg->auto_insecure_mode = 0;
+	cfg->on_insecure_command = NULL;
 
 	if(!cfg->unbound_control || !cfg->pidfile || !cfg->server_key_file ||
 		!cfg->server_cert_file || !cfg->control_key_file ||

@@ -34,6 +34,10 @@
 # do it without any user interaction
 # auto-insecure: no
 
+# the command to run when dnssec-trigger switches to insecure mode. It does not
+# matter if the switch was done automatically or by user interaction with the panel.
+# on-insecure-command: ""
+
 # the command to run to open login pages on hot spots, a web browser.
 # empty string runs no command.
 # login-command: "@login_command@"
