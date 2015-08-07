@@ -131,6 +131,13 @@ uses 127.0.0.1 (the loopback interface).  SSL is used to secure it,
 and the keys are stored on the disk (see below).  The other tools read this
 config file to find the port number and key locations.
 .TP
+.B auto\-insecure: \fR"<yes or no>"
+If all attempts to use DNSSEC failed, then automatically switch to the
+insecure mode. This means that the connection-provided resolvers will be
+used directly by the system. Also the dnssec-trigger panel will not
+query the user for the decision whether to switch to the insecure mode.
+The default is no.
+.TP
 .B login\-command: \fR"@login_command@"
 The command that is run when the user clicks Login on the no web access
 dialog.  That is supposedly a web browser, that is aimed to open some url

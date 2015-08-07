@@ -30,6 +30,10 @@
 # the search path from DHCP is not picked up, it could be used to misdirect.
 # search: ""
 
+# automatically switch to insecure mode in case DNSSEC can not be used, and
+# do it without any user interaction
+# auto-insecure: no
+
 # the command to run to open login pages on hot spots, a web browser.
 # empty string runs no command.
 # login-command: "@login_command@"

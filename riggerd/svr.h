@@ -202,6 +202,8 @@ void svr_tcp_timer_enable(void);
 /** stop tcp retry timer timeouts */
 void svr_tcp_timer_stop(void);
 
+/** perform a switch to insecure mode */
+void persist_cmd_insecure(int val);
 /** perform a reprobe */
 void cmd_reprobe(void);
 /** check if software updates have to be performed */

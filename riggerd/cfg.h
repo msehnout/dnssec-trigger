@@ -98,6 +98,11 @@ struct cfg {
 	struct strlist2* http_urls, *http_urls_last;
 	int num_http_urls;
 
+	/** if we want to automatically fall-back to the insecure
+	 * mode in case we can not use DNSSEC and all fallback options
+	 * already failed */
+	int auto_insecure_mode;
+
 	/** if we should perform version check (and ask user to update)
 	 * enabled on windows and osx. */
 	int check_updates;

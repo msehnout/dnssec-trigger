@@ -695,7 +695,7 @@ static int sslconn_checkclose(struct sslconn* sc)
 	return 0;
 }
 
-static void persist_cmd_insecure(int val)
+void persist_cmd_insecure(int val)
 {
 	struct svr* svr = global_svr;
 	int was_insecure = svr->insecure_state;

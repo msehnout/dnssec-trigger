@@ -1498,6 +1498,11 @@ probe_all_done(void)
 		} else {
 			verbose(VERB_OPS, "probe done: DNSSEC fails");
 			probe_setup_dark(svr);
+			/* the switch needs to happen after switch to "dark" mode */
+			if(svr->cfg->auto_insecure_mode) {
+				verbose(VERB_OPS, "probe done: Automatic switch to insecure mode");
+				persist_cmd_insecure(1);
+			}
 		}
 	} else if(svr->http && !svr->http->saw_http_work && !svr->skip_http) {
 		/* http probed (so have DHCPDNS), but fails */
