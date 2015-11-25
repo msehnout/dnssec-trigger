@@ -540,10 +540,11 @@ class Application:
             nm_pids = pidof('NetworkManager')
             for pid in nm_pids:
                 os.kill(pid, signal.SIGHUP)
-        elif os.path.exists("/sys/fs/cgroup/systemd"):
-            subprocess.check_call(["systemctl", "--ignore-dependencies", "try-restart", "NetworkManager.service"])
         else:
-            subprocess.check_call(["/etc/init.d/NetworkManager", "restart"])
+            try:
+                subprocess.check_call(["systemctl", "--ignore-dependencies", "try-restart", "NetworkManager.service"], stdout=DEVNULL, stderr=DEVNULL)
+            except subprocess.CalledProcessError:
+                subprocess.check_call(["/etc/init.d/NetworkManager", "restart"], stdout=DEVNULL, stderr=DEVNULL)
 
     def run_prepare(self):
         """Prepare for starting dnssec-trigger
