@@ -48,6 +48,8 @@ struct http_fetch;
 struct outq;
 struct svr;
 
+#include "json_helper.h"
+
 /**
  * probe structure that contains the probe details for one IP address.
  */
@@ -122,6 +124,8 @@ struct outq {
  * in a string, with whitespace in between
  * the string may be altered. */
 void probe_start(char* ips);
+
+void my_probe_start(CharChain* connections);
 
 /** delete and stop probe */
 void probe_delete(struct probe_ip* p);

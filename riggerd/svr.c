@@ -48,6 +48,7 @@
 #include "net_help.h"
 #include "reshook.h"
 #include "update.h"
+#include "json_helper.h"
 #ifdef USE_WINSOCK
 #include "winsock_event.h"
 #endif
@@ -791,6 +792,74 @@ static void handle_submit(char* ips)
 	probe_start(ips);
 }
 
+static void handle_domain_fwd(char *json)
+{
+    _Bool use_vpn_global_forwarders = true;
+    char *input = "";
+    ConnectionChain *connections = parseConnections(input);
+    //	while(tmp != NULL) {
+    //		structPrint(tmp->current);
+    //		tmp = tmp->next;
+    //	}
+    //
+    ConnectionChain *toProcess;
+
+    if (use_vpn_global_forwarders) {
+        toProcess = onlyVPN(connections);
+    }
+    if (NULL == toProcess || isEmpty(toProcess)) {
+        if (!isEmpty(toProcess))
+            freeConnectionChain(toProcess, false); // no preserve values because it should be empty
+
+        toProcess = onlyDefault(connections);
+    }
+
+    if (isEmpty(toProcess)) {
+        freeConnectionChain(toProcess, false);
+        printf("Nic ke zpracovani\n");
+        return;
+    }
+
+    CharChain *ips = newCharChain();
+    for (ConnectionChain *i = toProcess; NULL != i; i = i->next) { // every ip is in Chain only once after this
+        if (NULL == i->current)
+            continue;
+
+        for (CharChain *ip = i->current->servers; NULL != ip; ip = ip->next) {
+            if (NULL == ip->current)
+                continue;
+            if (valueInCharChain(ips, ip->current))
+                continue;
+
+            charChain_append(ips, ip->current);
+        }
+    }
+
+
+    for(CharChain *ip = ips; NULL != ip; ip = ip->next) {
+        if(NULL != ip->current)
+            log_info(ip->current);
+    }
+    my_probe_start(ips);
+
+
+
+    for (ConnectionChain *i = connections; i != NULL; i = i->next) {
+        if (NULL != i->current)
+            structPrint(i->current);
+    }
+
+    ConnectionChain *vpn = onlyVPN(connections);
+    freeConnectionChain(connections, true);
+
+    for (ConnectionChain *i = vpn; i != NULL; i = i->next) {
+        if (NULL != i->current)
+            structPrint(i->current);
+    }
+    freeConnectionChain(vpn, false);
+
+}
+
 /** append update signal to buffer to send */
 static void
 append_update_to_con(struct sslconn* s, char* version_available)
@@ -1050,7 +1119,11 @@ static void sslconn_command(struct sslconn* sc)
 	} else if(strncmp(str, "stop", 4) == 0) {
 		comm_base_exit(global_svr->base);
 		sslconn_shutdown(sc);
-	} else {
+	} else if(strncmp(str, "domain_fwd", 10) == 0) {
+            printf("blah yeah");
+                handle_domain_fwd(str+10);  // moves pointer above command-name to args
+                sslconn_shutdown(sc);
+        } else {
 		verbose(VERB_DETAIL, "unknown command: %s", str);
 		handle_printclose(sc, "error unknown command");
 	}
