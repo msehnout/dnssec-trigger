@@ -1,0 +1,16 @@
+01-dnssec-trigger
+Makefile
+build/
+config.h
+config.log
+config.status
+dnssec-trigger-control
+dnssec-trigger-control-setup
+dnssec-trigger-panel
+dnssec-trigger-panel.desktop
+dnssec-trigger-script
+dnssec-trigger.8
+dnssec-triggerd
+dnssec-triggerd.service
+example.conf
+nbproject
