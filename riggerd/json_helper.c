@@ -1,8 +1,43 @@
 /*
- * json_helper.c
+ * util/json_helper.c - helper for parsing json input to Connection
  *
- *  Created on: 14. 7. 2016
- *      Author: fcap
+ * Copyright (c) 2016, NLnet Labs. All rights reserved.
+ *
+ * This software is open source.
+ * 
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 
+ * Redistributions of source code must retain the above copyright notice,
+ * this list of conditions and the following disclaimer.
+ * 
+ * Redistributions in binary form must reproduce the above copyright notice,
+ * this list of conditions and the following disclaimer in the documentation
+ * and/or other materials provided with the distribution.
+ * 
+ * Neither the name of the NLNET LABS nor the names of its contributors may
+ * be used to endorse or promote products derived from this software without
+ * specific prior written permission.
+ * 
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ * HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED
+ * TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+ * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+ * LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+ * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+/**
+ * \file
+ *
+ * This file contains functions needed for proper parsing json input as Connection
+ * 
  */
 
 #include "json_helper.h"
@@ -11,8 +46,12 @@
 #include <string.h>
 #include "../vendor/ccan/json/json.h"
 
-/*
- *
+/**
+ * Parses input json char* to ConnectionChain
+ * @Example //TODO:
+ * 
+ * @param input
+ * @return ConnectionChain*
  */
 ConnectionChain* parseConnections(char* input) {
     printf(input);
@@ -65,7 +104,11 @@ ConnectionChain* parseConnections(char* input) {
                 CharChain *zn = newCharChain();
 
                 while (NULL != zone) {
-                    charChain_append(zn, zone->string_);
+                    char *znc = calloc(strlen(zone->string_) + 1, sizeof (char));
+                    if (NULL == znc)
+                        outOfMemory();
+                    strcpy(znc, zone->string_);
+                    charChain_append(zn, znc);
 
                     zone = zone->next;
                 }
@@ -75,7 +118,11 @@ ConnectionChain* parseConnections(char* input) {
                 CharChain *sv = newCharChain();
 
                 while (NULL != server) {
-                    charChain_append(sv, server->string_);
+                    char *svc = calloc(strlen(server->string_) + 1, sizeof (char));
+                    if (NULL == svc)
+                        outOfMemory();
+                    strcpy(svc, server->string_);
+                    charChain_append(sv, svc);
 
                     server = server->next;
                 }
@@ -92,17 +139,20 @@ ConnectionChain* parseConnections(char* input) {
     }
 
     // should free chain pointers to pointers?
+
+
+    json_delete(node); // not sure if it deletes the whole tree
     return cons;
 }
 
-void printType(JsonNode *node) {
-    if (node->tag == JSON_ARRAY)
-        printf("array\n");
-    else if (node->tag == JSON_STRING)
-        printf("string\n");
-    else if (node->tag == JSON_OBJECT)
-        printf("object\n");
-}
+//void printType(JsonNode *node) {
+//    if (node->tag == JSON_ARRAY)
+//        printf("array\n");
+//    else if (node->tag == JSON_STRING)
+//        printf("string\n");
+//    else if (node->tag == JSON_OBJECT)
+//        printf("object\n");
+//}
 
 void handleErr() {
     printf("bad json input");
@@ -128,7 +178,7 @@ void freeCharChain(CharChain *cn) {
         free(cn);
 }
 
-ConnectionChain* newConnectionChain() {
+static ConnectionChain* newConnectionChain() {
     ConnectionChain *cn = calloc(1, sizeof (ConnectionChain));
     if (NULL == cn) {
         outOfMemory();
@@ -136,7 +186,7 @@ ConnectionChain* newConnectionChain() {
     return cn;
 }
 
-void freeConnectionChain(ConnectionChain *cn, _Bool preserveValues) { // we're freeing in just one direction
+void freeConnectionChain(ConnectionChain *cn, bool preserveValues) { // we're freeing in just one direction
     if (NULL != cn->next) {
         freeConnectionChain(cn->next, preserveValues);
         free(cn->next);
@@ -149,7 +199,7 @@ void freeConnectionChain(ConnectionChain *cn, _Bool preserveValues) { // we're f
         free(cn);
 }
 
-Connection* newConnection() {
+static Connection* newConnection() {
     Connection *con = calloc(1, sizeof (Connection));
     if (NULL == con) {
         outOfMemory();
@@ -157,7 +207,7 @@ Connection* newConnection() {
     return con;
 }
 
-void freeConnection(Connection *con) {
+static void freeConnection(Connection *con) {
     if (con) {
         //doesn't have to be freeed?
         //		free(&con->default_con); //everything should be allocated
@@ -167,6 +217,8 @@ void freeConnection(Connection *con) {
     }
 }
 
+
+/*DEBUG ONLY*/
 void structPrint(Connection *con) {
     if (con->default_con) {
         printf("default: true\n");
@@ -207,7 +259,7 @@ void structPrint(Connection *con) {
     printf("\n");
 }
 
-void outOfMemory() {
+static void outOfMemory() {
     printf("OUT OF MEMORY!");
     exit(-1);
 }
@@ -234,7 +286,7 @@ CharChain* charChain_append(CharChain *chain, char *value) {
 
 }
 
-ConnectionChain* connectionChain_append(ConnectionChain *chain, Connection *value) {
+static ConnectionChain* connectionChain_append(ConnectionChain *chain, Connection *value) {
     ConnectionChain *tmp = chain;
     if (NULL == tmp->current) {
         tmp->current = value;
@@ -334,13 +386,16 @@ ConnectionChain* onlyDefault(ConnectionChain *cn) {
     return toRet;
 }
 
-_Bool isEmpty(ConnectionChain *cn) { // only one direction checking
+bool isEmpty(ConnectionChain *cn) { // only one direction checking
     if (NULL == cn || (NULL == cn->current && NULL == cn->next))
         return true;
     return false;
 }
 
-_Bool valueInCharChain(CharChain *cn, char* value) {
+bool valueInCharChain(CharChain *cn, char* value) {
+    if (NULL == value) {
+        return false;
+    }
     for (CharChain *i = cn; NULL != i; i = i->next) { // po inicializaci se take provede kontrola podminky?
         if (NULL == i->current)
             return false;
@@ -351,4 +406,35 @@ _Bool valueInCharChain(CharChain *cn, char* value) {
     return false;
 }
 
+static int charChainLength(CharChain *cn) {
+    int len = 0;
+
+    CharChain *tmp = cn;
+    while (NULL != tmp) {
+        tmp = tmp->next;
+        len++;
+    }
+
+    return len;
+}
+
+bool charChainsEqual(CharChain *cn1, CharChain *cn2) { // not the order of values, just "is it also there?"
+    if (NULL == cn1 && NULL == cn2)
+        return true;
+
+    if ((NULL == cn1 && NULL != cn2) || (NULL == cn2 && NULL != cn1))
+        return false;
+
+    if (charChainLength(cn1) != charChainLength(cn2)) { // we assume every value is unique
+        return false;
+    }
+
+    for (CharChain *i = cn1; NULL != i->next; i = i->next) {
+        if (!valueInCharChain(cn2, i->current))
+            return false;
+    }
+
+    return true;
+
+}
 
