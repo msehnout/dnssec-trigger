@@ -102,6 +102,7 @@ struct svr* svr_create(struct cfg* cfg)
 			return NULL;
 		}
 	}
+        //todo: loading stored_zones from file
 
 	/* setup SSL_CTX */
 	if(!setup_ssl_ctx(svr)) {
@@ -150,6 +151,12 @@ void svr_delete(struct svr* svr)
 	comm_timer_delete(svr->tcp_timer);
 	http_general_delete(svr->http);
 	comm_base_delete(svr->base);
+        
+        if(svr->global_forwarders != NULL)
+            freeCharChain(svr->global_forwarders);
+        if(svr->stored_zones != NULL)
+            freeCharChain(svr->stored_zones);
+        
 	free(svr);
 }
 
@@ -792,36 +799,29 @@ static void handle_submit(char* ips)
 	probe_start(ips);
 }
 
-static void handle_domain_fwd(char *json)
-{
-    _Bool use_vpn_global_forwarders = true;
-    char *input = "";
-    ConnectionChain *connections = parseConnections(input);
-    //	while(tmp != NULL) {
-    //		structPrint(tmp->current);
-    //		tmp = tmp->next;
-    //	}
-    //
-    ConnectionChain *toProcess;
+static void update_global_forwarders(ConnectionChain *input_connections) {
+    ConnectionChain *connections = copy_ConnectionChain(input_connections);
 
-    if (use_vpn_global_forwarders) {
-        toProcess = onlyVPN(connections);
+    if (global_svr->cfg->use_vpn_global_forwarders) { // note only vpn must return NULL if there's none
+        connections = onlyVPN(connections);
     }
-    if (NULL == toProcess || isEmpty(toProcess)) {
-        if (!isEmpty(toProcess))
-            freeConnectionChain(toProcess, false); // no preserve values because it should be empty
+    if (isEmpty(connections)) {
+        if (connections != NULL)
+            freeConnectionChain(connections, false); // no preserve values because it should be empty
+        connections = copy_ConnectionChain(input_connections);
 
-        toProcess = onlyDefault(connections);
+        connections = onlyDefault(connections);
     }
 
-    if (isEmpty(toProcess)) {
-        freeConnectionChain(toProcess, false);
-        printf("Nic ke zpracovani\n");
+    if (isEmpty(connections)) {
+        if (connections != NULL)
+            freeConnectionChain(connections, false);
+        log_info("No global forwarders for processing.");
         return;
     }
 
     CharChain *ips = newCharChain();
-    for (ConnectionChain *i = toProcess; NULL != i; i = i->next) { // every ip is in Chain only once after this
+    for (ConnectionChain *i = connections; NULL != i; i = i->next) { // every ip is in Chain only once after this cycle
         if (NULL == i->current)
             continue;
 
@@ -831,33 +831,253 @@ static void handle_domain_fwd(char *json)
             if (valueInCharChain(ips, ip->current))
                 continue;
 
-            charChain_append(ips, ip->current);
+            char *cpy = calloc(strlen(ip->current) + 1, sizeof (char));
+            if (cpy == NULL)
+                outOfMemory();
+            strcpy(cpy, ip->current);
+            charChain_append(ips, cpy);
         }
     }
 
 
-    for(CharChain *ip = ips; NULL != ip; ip = ip->next) {
-        if(NULL != ip->current)
-            log_info(ip->current);
+    if (!charChainsEqual(ips, global_svr->global_forwarders)) { // compare with previous forwarders
+        if (NULL != global_svr->global_forwarders)
+            freeCharChain(global_svr->global_forwarders);
+        global_svr->global_forwarders = ips;
+
+        my_probe_start(ips);
+
+    } else {
+        freeCharChain(ips);
+        log_info("Global forwarders are same as the last one. None is processed.");
     }
-    my_probe_start(ips);
 
+    freeConnectionChain(connections, false);
 
+}
 
-    for (ConnectionChain *i = connections; i != NULL; i = i->next) {
-        if (NULL != i->current)
-            structPrint(i->current);
+void update_connection_zones(ConnectionChain *input_connections) {
+    char **rfc1918_reverse_zones = (char *[]){"c.f.ip6.arpa", "d.f.ip6.arpa", "168.192.in-addr.arpa", "16.172.in-addr.arpa", "17.172.in-addr.arpa", "18.172.in-addr.arpa", "19.172.in-addr.arpa", "20.172.in-addr.arpa", "21.172.in-addr.arpa", "22.172.in-addr.arpa", "23.172.in-addr.arpa", "24.172.in-addr.arpa", "25.172.in-addr.arpa", "26.172.in-addr.arpa", "27.172.in-addr.arpa", "28.172.in-addr.arpa", "29.172.in-addr.arpa", "30.172.in-addr.arpa", "31.172.in-addr.arpa", "10.in-addr.arpa"}; // hope every string ends with NULL
+    char *flush_command;
+    if (global_svr->cfg->keep_positive_answers)
+        flush_command = "flush_negative";
+    else
+        flush_command = "flush_zone";
+
+    // we copy inputConnections to keep them untouched for another usage somewhere else and for correct deallocation
+    ConnectionChain *connections = copy_ConnectionChain(input_connections);
+
+    if (!global_svr->cfg->add_wifi_provided_zone) { // what if there's only wifi on list?
+        connections = noWifi(connections);
     }
 
-    ConnectionChain *vpn = onlyVPN(connections);
-    freeConnectionChain(connections, true);
+    AssocChain *mappedConnections = getZoneConnectionMapping(connections);
+    ZoneConfig *unbound_zones = getUnboundZoneConfig();
+    bool in = false;
+    bool not_in = true;
 
-    for (ConnectionChain *i = vpn; i != NULL; i = i->next) {
-        if (NULL != i->current)
-            structPrint(i->current);
+
+    // Remove any zones managed by dnssec-trigger that are no longer valid.
+
+    //for(CharChain *c = stored_zones; c != NULL; c = c->next) {
+    CharChain *c = global_svr->stored_zones;
+    while (c != NULL) {
+        // leave zones that are provided by some connection
+        for (AssocChain *cn = mappedConnections; cn != NULL; cn = cn->next) {
+            if (cn->zone == NULL || c->current == NULL)
+                continue;
+            if (strcmp(cn->zone, c->current) == 0) {
+                in = true;
+                break;
+            }
+        }
+
+        if (in) {
+            in = false;
+            c = c->next;
+            continue;
+        }
+        // ---------------------
+
+        for (int i = 0; i < 20; i++) { // 20 is number of records in rfc array //todo: do it dynamic use arrayDelimiter to determine the end of the array
+            char *zone = (char *) *(rfc1918_reverse_zones + i);
+
+            if (c->current == NULL || zone == NULL)
+                continue;
+            if (strcmp(zone, c->current) == 0) {
+                // if zone is private address range reverse zone and we are configured to use them, leave it
+                if (global_svr->cfg->use_private_address_range) {
+                    in = true;
+                    break;
+                } else {
+                    // otherwise add Unbound local zone of type 'static' like Unbound does and remove it later
+                    unbound_local_zones_add(c->current, "static");
+                    // how about putting here break too?
+                }
+            }
+        }
+
+        if (in) {
+            in = false;
+            c = c->next;
+            continue;
+        }
+        // --------------------
+        // Remove all zones that are not in connections except OR
+        // are private address ranges reverse zones and we are NOT
+        // configured to use them
+
+        for (ZoneConfig *ubd_zn = unbound_zones; ubd_zn != NULL; ubd_zn = ubd_zn->next) {
+            if (ubd_zn->name == NULL || c->current == NULL)
+                continue;
+            if (strcmp(ubd_zn->name, c->current) == 0) {
+                unbound_zones_remove(c->current, flush_command);
+                // how about putting here break too?
+            }
+        }
+        CharChain *tmp = c->next; // now there's just one danger, we've removed next cell, but this case shouldn't appear because we should have been iterated on the same position which will be deleted
+        stored_zones_remove_double(&global_svr->stored_zones, c->current); // danger situations we've removed next, we've removed current
+        c = tmp;
     }
-    freeConnectionChain(vpn, false);
+    // ------------------------
+    // Install all zones coming from connections except those installed
+    // by other means than dnssec-trigger-script.
+    for (AssocChain *cn = mappedConnections; cn != NULL; cn = cn->next) {
+        // Reinstall a known zone or install a new zone.
+        for (CharChain *stored = global_svr->stored_zones; stored != NULL; stored = stored->next) {
+            if (cn->zone == NULL || stored->current == NULL)
+                continue;
+            if (strcmp(cn->zone, stored->current) == 0) {
+                in = true;
+                break;
+            }
+        }
 
+        if (!in) {
+            for (ZoneConfig *ubd_zn = unbound_zones; ubd_zn != NULL; ubd_zn = ubd_zn->next) {
+                if (ubd_zn->name == NULL || cn->zone == NULL)
+                    continue;
+                if (strcmp(cn->zone, ubd_zn->name) == 0) {
+                    not_in = false;
+                    break;
+                }
+            }
+        }
+
+        if (in || not_in) {
+            unbound_zones_add(cn->zone, cn->connection->servers, global_svr->cfg->validate_connection_provided_zones); // maybe should ensure every server is there only once in chain
+            char *zn = calloc(strlen(cn->zone) + 1, sizeof (char));
+            if (zn == NULL)
+                outOfMemory();
+            strcpy(zn, cn->zone);
+            charChain_append_double(&global_svr->stored_zones, zn);
+        }
+        in = false;
+        not_in = true;
+    }
+    // ---------------------------
+
+    in = false;
+    not_in = true;
+
+    // Configure forward zones for reverse name resolution of private addresses.
+    // RFC1918 zones will be installed, except those already provided by connections
+    // and those installed by other means than by dnssec-trigger-script.
+    // RFC19118 zones will be removed if there are no global forwarders.
+    if (global_svr->cfg->use_private_address_range) {
+        for (int i = 0; i < 20; i++) { //todo: use arrayDelimiter to determine the end of the array
+            char *zone = (char *) *(rfc1918_reverse_zones + i);
+            // Ignore a connection provided zone as it's been already processed.
+            for (AssocChain *con = mappedConnections; con != NULL; con = con->next) {
+                if (zone == NULL || con->zone == NULL)
+                    continue;
+                if (strcmp(zone, con->zone) == 0) {
+                    continue;
+                }
+            }
+
+            if (!isEmptyCharChain(global_svr->global_forwarders)) {
+                // Reinstall a known zone or install a new zone.
+                for (CharChain *stored = global_svr->stored_zones; stored != NULL; stored = stored->next) {
+                    if (zone == NULL || stored->current == NULL)
+                        continue;
+                    if (strcmp(zone, stored->current) == 0) {
+                        in = true;
+                        break;
+                    }
+                }
+
+                not_in = true;
+                if (!in) {
+                    for (ZoneConfig *ubd_zn = unbound_zones; ubd_zn != NULL; ubd_zn = ubd_zn->next) {
+                        if (zone == NULL || ubd_zn->name == NULL)
+                            continue;
+                        if (strcmp(zone, ubd_zn->name) == 0) {
+                            not_in = false;
+                            break;
+                        }
+                    }
+                }
+
+                if (in || not_in) {
+                    unbound_zones_add(zone, global_svr->global_forwarders, false);
+                    char *zn = calloc(strlen(zone) + 1, sizeof (char));
+                    if (zn == NULL)
+                        outOfMemory();
+                    strcpy(zn, zone);
+                    charChain_append_double(&global_svr->stored_zones, zn);
+                    unbound_local_zones_remove(zone);
+                }
+                in = false;
+                not_in = true;
+
+            } else {
+                // There are no global forwarders, therefore remove the zone
+                //CharChain *stored = stored_zones;
+                for (CharChain *stored = global_svr->stored_zones; stored != NULL; stored = stored->next) {
+                    //while(stored != NULL) {
+                    if (zone == NULL || stored->current == NULL) {
+                        continue;
+                    }
+
+                    if (strcmp(zone, stored->current) == 0) {
+                        //CharChain *tmp = stored_zones->next;
+                        stored_zones_remove_double(&global_svr->stored_zones, zone);
+                        //	stored = tmp;
+                        //stored_zones_remove(zone);
+                        break;
+                    }
+                }
+
+                for (ZoneConfig *ubd_zn = unbound_zones; ubd_zn != NULL; ubd_zn = ubd_zn->next) {
+                    if (zone == NULL || ubd_zn->name == NULL)
+                        continue;
+                    if (strcmp(zone, ubd_zn->name) == 0) {
+                        unbound_zones_remove(zone, flush_command);
+                        break;
+                    }
+                }
+                unbound_local_zones_add(zone, "static");
+
+            }
+        }
+    }
+
+    freeAssocChain(mappedConnections, true); // preserve values because for mapping we used values from other chain and didn't copy them
+    freeZoneConfig(unbound_zones, false);
+    freeConnectionChain(connections, false);
+
+}
+
+static void handle_update_all(char *json) {
+    ConnectionChain *connections = parseConnections(json);
+
+    update_global_forwarders(connections);
+    update_connection_zones(connections);
+
+    freeConnectionChain(connections, false);
+    //deprecated todo: at app ending/closing free global_forwarders and stored_zones
+    //this should be handled by svr_delete where it is implemented, so if app handles svr_deleting this todo is done
 }
 
 /** append update signal to buffer to send */
@@ -1119,9 +1339,8 @@ static void sslconn_command(struct sslconn* sc)
 	} else if(strncmp(str, "stop", 4) == 0) {
 		comm_base_exit(global_svr->base);
 		sslconn_shutdown(sc);
-	} else if(strncmp(str, "domain_fwd", 10) == 0) {
-            printf("blah yeah");
-                handle_domain_fwd(str+10);  // moves pointer above command-name to args
+	} else if(strncmp(str, "update_all", 10) == 0) {
+                handle_update_all(str+10);  // moves pointer above command-name to args
                 sslconn_shutdown(sc);
         } else {
 		verbose(VERB_DETAIL, "unknown command: %s", str);

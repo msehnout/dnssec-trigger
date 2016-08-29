@@ -112,6 +112,16 @@ struct cfg {
 	char* control_key_file;
 	/** certificate file for control */
 	char* control_cert_file;
+        /** //todo: */
+        int use_vpn_global_forwarders;
+        
+        int use_private_address_range;
+        
+        int add_wifi_provided_zone;
+        
+        int validate_connection_provided_zones;
+        
+        int keep_positive_answers;
 };
 
 /** simple list of strings */

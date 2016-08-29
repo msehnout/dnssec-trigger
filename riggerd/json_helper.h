@@ -54,64 +54,58 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include <string.h>
-
+#include <unistd.h>
 #include "../vendor/ccan/json/json.h"
+#include "json_data_types.h"
 
-typedef struct connection Connection;
-typedef struct charChain CharChain;
-typedef enum connection_type ConnectionType;
-typedef struct connectionChain ConnectionChain;
-
-ConnectionChain* parseConnections(char* input);
+ConnectionChain * parseConnections(char * input);
+void printType(JsonNode * node);
 void handleErr();
-CharChain* newCharChain();
-void freeCharChain(CharChain *cn);
-static ConnectionChain* newConnectionChain();
-void freeConnectionChain(ConnectionChain *cn, bool preserveValues);
-static Connection* newConnection();
-static void freeConnection(Connection *con);
-void structPrint(Connection *con);
-static void outOfMemory();
-CharChain* charChain_append(CharChain *chain, char *value);
-static ConnectionChain* connectionChain_append(ConnectionChain *chain, Connection *value);
-//char** charChain_to_array(CharChain *chain);
-//Connection* connectionChain_to_array(ConnectionChain *chain);
-ConnectionChain* onlyVPN(ConnectionChain *cn);
-ConnectionChain* onlyDefault(ConnectionChain *cn);
-bool isEmpty(ConnectionChain *cn);
-bool valueInCharChain(CharChain *cn, char* value);
-static int charChainLength(CharChain *cn);
-bool charChainsEqual(CharChain *cn1, CharChain *cn2);
-
-enum connection_type {
-    VPN,
-    WIFI,
-    OTHER,
-    IGNORE,
-    DELIMITER
-};
-
-struct connection {
-    bool default_con;
-    CharChain *zones;
-    ConnectionType type;
-    CharChain *servers;
-};
-
-struct charChain {
-    CharChain *prev;
-    char *current;
-    CharChain *next;
-};
-
-struct connectionChain {
-    ConnectionChain *prev;
-    Connection *current;
-    ConnectionChain *next;
-};
-
-
+CharChain * newCharChain();
+void freeCharChain(CharChain * cn);
+ConnectionChain * newConnectionChain();
+void freeConnectionChain(ConnectionChain * cn, bool preserveValues);
+Connection * newConnection();
+void freeConnection(Connection * con);
+void structPrint(Connection * con);
+void outOfMemory();
+void charChain_append_double(CharChain * * head, char * value);
+CharChain * charChain_append(CharChain * chain, char * value);
+ConnectionChain * connectionChain_append(ConnectionChain * chain, Connection * value);
+void freeConnectionChainCell(ConnectionChain * cn);
+ConnectionChain * onlyVPN(ConnectionChain * cn);
+ConnectionChain * onlyDefault(ConnectionChain * cn);
+bool isEmpty(ConnectionChain * cn);
+bool valueInCharChain(CharChain * cn, char * value);
+int charChainLength(CharChain * cn);
+bool charChainsEqual(CharChain * cn1, CharChain * cn2);
+CharChain * copy_CharChain(CharChain * cn);
+Connection * copy_Connection(Connection * cn);
+ConnectionChain * copy_ConnectionChain(ConnectionChain * cn);
+ConnectionChain * noWifi(ConnectionChain * cn);
+Connection * getPreferredConnection(Connection * first, Connection * second);
+AssocChain * newAssocChain();
+void freeAssocChain(AssocChain * cn, bool preserveValues);
+AssocChain * assocChain_append(AssocChain * cn, char * zone, Connection * con);
+AssocChain * getAssocChainWithZone(AssocChain * cn, char * zone);
+AssocChain * getZoneConnectionMapping(ConnectionChain * connections);
+ZoneConfig * newZoneConfig();
+void freeZoneConfig(ZoneConfig * zn, bool preserveValues);
+ZoneConfig * zoneConfig_append(ZoneConfig * what, ZoneConfig * where);
+ZoneConfig * getUnboundZoneConfig();
+LocalZoneConfig * newLocalZoneConfig();
+void freeLocalZoneConfig(LocalZoneConfig * cfg, bool preserveValues);
+LocalZoneConfig * localZoneConfig_append(LocalZoneConfig * what, LocalZoneConfig * where);
+LocalZoneConfig * getUnboundLocalZoneConfig();
+bool isEmptyCharChain(CharChain * cc);
+void unbound_local_zones_add(char * zone, char * type);
+void unbound_zones_remove(char * zone, char * flush_command);
+void freeCharChainCell(CharChain * cc);
+void stored_zones_remove_double(CharChain * * chain, char * zone);
+void stored_zones_remove(char * zone);
+char * servers_to_string(CharChain * servers);
+void unbound_zones_add(char * zone, CharChain * servers, bool validate);
+void unbound_local_zones_remove(char * zone);
 
 #endif /* JSON_HELPER_H */
 

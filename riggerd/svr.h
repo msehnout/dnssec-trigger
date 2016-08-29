@@ -41,6 +41,9 @@
 
 #ifndef SVR_H
 #define SVR_H
+
+#include "json_data_types.h"
+
 struct cfg;
 struct comm_base;
 struct comm_reply;
@@ -139,6 +142,10 @@ struct svr {
 	int http_insecure;
 	/* skip http probe part (ignore failure until it works again) */
 	int skip_http;
+        /* todo: */
+        CharChain *global_forwarders;
+        /* todo: */
+        CharChain *stored_zones;
 };
 
 /** retry timer start (sec.) */
