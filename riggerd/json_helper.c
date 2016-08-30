@@ -51,8 +51,8 @@
  * @return ConnectionChain*
  */
 ConnectionChain* parseConnections(char* input) {
-    printf(input);
-    printf("\n");
+//    printf(input);
+//    printf("\n");
 
     if (!input || !json_validate(input)) {
         handleErr();
@@ -208,46 +208,46 @@ void freeConnection(Connection *con) {
     }
 }
 
-void structPrint(Connection *con) {
-    if (con == NULL)
-        return;
-
-    if (con->default_con) {
-        printf("default: true\n");
-    } else {
-        printf("default: false\n");
-    }
-    printf("type: ");
-    switch (con->type) {
-        case WIFI:
-            printf("wifi\n");
-            break;
-
-        case VPN:
-            printf("vpn\n");
-            break;
-
-        default:
-        case OTHER:
-            printf("other\n");
-            break;
-
-    }
-
-    printf("servers: \n");
-    for (CharChain *i = con->servers; i != NULL; i = i->next) {
-        printf(i->current);
-        printf("\n");
-    }
-
-    printf("\n");
-    printf("zones: \n");
-    for (CharChain *i = con->zones; i != NULL; i = i->next) {
-        printf(i->current);
-        printf("\n");
-    }
-    printf("\n");
-}
+//void structPrint(Connection *con) {
+//    if (con == NULL)
+//        return;
+//
+//    if (con->default_con) {
+//        printf("default: true\n");
+//    } else {
+//        printf("default: false\n");
+//    }
+//    printf("type: ");
+//    switch (con->type) {
+//        case WIFI:
+//            printf("wifi\n");
+//            break;
+//
+//        case VPN:
+//            printf("vpn\n");
+//            break;
+//
+//        default:
+//        case OTHER:
+//            printf("other\n");
+//            break;
+//
+//    }
+//
+//    printf("servers: \n");
+//    for (CharChain *i = con->servers; i != NULL; i = i->next) {
+//        printf(i->current);
+//        printf("\n");
+//    }
+//
+//    printf("\n");
+//    printf("zones: \n");
+//    for (CharChain *i = con->zones; i != NULL; i = i->next) {
+//        printf(i->current);
+//        printf("\n");
+//    }
+//    printf("\n");
+//}
 
 void outOfMemory() {
     printf("OUT OF MEMORY!");

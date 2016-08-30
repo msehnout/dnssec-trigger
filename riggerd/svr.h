@@ -219,8 +219,6 @@ void svr_signal_update(struct svr* svr, char* version_available);
 int handle_ssl_accept(struct comm_point* c, void* arg, int error,
         struct comm_reply* reply_info);
 
-static void handle_domain_fwd(char *json);
-
 int control_callback(struct comm_point* c, void* arg, int error,
         struct comm_reply* reply_info);
 
