@@ -375,6 +375,7 @@ keyword(struct cfg* cfg, char* p)
 			&cfg->num_http_urls, get_arg(p+4));
 	} else if(strncmp(p, "check-updates:", 14) == 0) {
 		bool_arg(&cfg->check_updates, p+14);
+#ifdef ZN_FWD_SPPRT
 	} else if(strncmp(p, "use-vpn-global-forwarders:", 26) == 0)  {
                 bool_arg(&cfg->use_vpn_global_forwarders, p+26);
         } else if(strncmp(p, "use-private-address-range:", 26) == 0) {
@@ -384,7 +385,8 @@ keyword(struct cfg* cfg, char* p)
         } else if(strncmp(p, "validate-connection-provided-zones:", 35) == 0) {
                 bool_arg(&cfg->validate_connection_provided_zones, p+35);
         } else if(strncmp(p, "keep-positive-answers:", 22) == 0) {
-                bool_arg(&cfg->keep_positive_answers, p+22);
+                bool_arg(&cfg->keep_positive_answers, p+22); 
+#endif        
         } else {
 		return 0;
 	}
@@ -438,11 +440,13 @@ struct cfg* cfg_create(const char* cfgfile)
 	cfg->pidfile = strdup(PIDFILE);
 	cfg->resolvconf = strdup("/etc/resolv.conf");
 	cfg->check_updates = (strcmp(CHECK_UPDATES, "yes")==0);
+#ifdef ZN_FWD_SPPRT
         cfg->use_vpn_global_forwarders = 0;
         cfg->use_private_address_range = 0;
         cfg->add_wifi_provided_zone = 0;
         cfg->validate_connection_provided_zones = 0;
         cfg->keep_positive_answers = 0;
+#endif
 
 	if(!cfg->unbound_control || !cfg->pidfile || !cfg->server_key_file ||
 		!cfg->server_cert_file || !cfg->control_key_file ||

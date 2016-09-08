@@ -29,6 +29,7 @@ sbindir=@sbindir@
 mandir=@mandir@
 libdir=@libdir@
 libexecdir=@libexecdir@
+ZN_FWD_SPPRT=@ZONE_FWD_SPPRT@
 # datarootdir is here to please some checkers, use datadir.
 datarootdir=@datarootdir@
 datadir=@datadir@
@@ -100,7 +101,6 @@ DEPFLAG=@DEPFLAG@
 EXPORT_DYNAMIC=@EXPORT_DYNAMIC@
 DATE=$(shell date +%Y%m%d)
 BUILD=build/
-
 WINDRES=@WINDRES@
 LINT=splint
 LINTFLAGS=+quiet -weak -warnposix -unrecog -Din_addr_t=uint32_t -Du_int=unsigned -Du_char=uint8_t -preproc -Drlimit=rlimit64 -D__gnuc_va_list=va_list
@@ -115,6 +115,9 @@ endif
 LINTFLAGS+="-Dsigset_t=long"
 # FreeBSD8
 LINTFLAGS+="-D__uint16_t=uint16_t"
+ifeq "$(ZN_FWD_SPPRT)" "yes"
+	CFLAGS+= -DZN_FWD_SPPRT
+endif
 
 INSTALL=$(srcdir)/install-sh
 
@@ -142,7 +145,10 @@ else
 KEYGEN_SRC=
 endif
 KEYGEN_OBJ=$(addprefix $(BUILD),$(KEYGEN_SRC:.c=.o)) $(COMPAT_OBJ)
-RIGGERD_SRC=riggerd/riggerd.c riggerd/log.c riggerd/netevent.c riggerd/rbtree.c riggerd/mini_event.c riggerd/net_help.c riggerd/winsock_event.c riggerd/fptr_wlist.c riggerd/cfg.c riggerd/svr.c riggerd/probe.c riggerd/ubhook.c riggerd/reshook.c riggerd/http.c riggerd/update.c vendor/ccan/json/json.c riggerd/forwards.c riggerd/forwards_data_types_tools.c
+RIGGERD_SRC=riggerd/riggerd.c riggerd/log.c riggerd/netevent.c riggerd/rbtree.c riggerd/mini_event.c riggerd/net_help.c riggerd/winsock_event.c riggerd/fptr_wlist.c riggerd/cfg.c riggerd/svr.c riggerd/probe.c riggerd/ubhook.c riggerd/reshook.c riggerd/http.c riggerd/update.c
+ifeq "$(ZN_FWD_SPPRT)" "yes"
+RIGGERD_SRC+= vendor/ccan/json/json.c riggerd/forwards.c riggerd/forwards_data_types_tools.c
+endif
 ifeq "$(hooks)" "windows"
 RIGGERD_SRC+=winrc/netlist.c winrc/win_svc.c winrc/w_inst.c
 endif

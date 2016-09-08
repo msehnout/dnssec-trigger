@@ -623,6 +623,7 @@ ac_includes_default="\
 
 ac_subst_vars='LTLIBOBJS
 DATE
+ZONE_FWD_SPPRT
 LDNSLIBS
 ldnsdir
 unbound_control_path
@@ -723,6 +724,7 @@ with_pidfile
 with_python
 with_unbound_control
 with_ldns
+with_forward_zones_support
 enable_rpath
 '
       ac_precious_vars='build_alias
@@ -1392,6 +1394,9 @@ Optional Packages:
                           set the unbound-control to use, default what
                           configure finds in its path
   --with-ldns=PATH        specify prefix of path of ldns library to use
+  --with-forward-zones-support
+                          Set whether enable forward zones support, only Linux
+                          feature
 
 Some influential environment variables:
   CC          C compiler command
@@ -7421,6 +7426,27 @@ fi
 
 
 fi
+
+
+
+# Check whether --with-forward-zones-support was given.
+if test "${with_forward_zones_support+set}" = set; then :
+  withval=$with_forward_zones_support;
+else
+  withval=""
+fi
+
+if test "`uname`" = "Linux"; then
+	if test "$withval" = "yes"; then
+		ZONE_FWD_SPPRT=yes
+
+#        	forward-zones-support="yes"
+	fi
+
+#else
+#	forward-zones-support="no"
+fi
+
 
 
 # add option to disable the evil rpath

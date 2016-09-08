@@ -41,8 +41,9 @@
 
 #ifndef SVR_H
 #define SVR_H
-
+#ifdef ZN_FWD_SPPRT
 #include "forwards_data_types.h"
+#endif
 
 struct cfg;
 struct comm_base;
@@ -142,10 +143,12 @@ struct svr {
 	int http_insecure;
 	/* skip http probe part (ignore failure until it works again) */
 	int skip_http;
+#ifdef ZN_FWD_SPPRT
         /* todo: */
         CharChain *global_forwarders;
         /* todo: */
         CharChain *stored_zones;
+#endif
 };
 
 /** retry timer start (sec.) */

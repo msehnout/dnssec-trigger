@@ -565,6 +565,21 @@ AC_ARG_WITH(ldns, AC_HELP_STRING([--with-ldns=PATH],
 	AC_CHECK_LIB(ldns, ldns_buffer_new,,[AC_MSG_ERROR([please install ldns-devel])])
 	])
 
+AC_ARG_WITH([forward-zones-support], AC_HELP_STRING([--with-forward-zones-support],
+[Set whether enable forward zones support, only Linux feature]),, withval="")
+if test "`uname`" = "Linux"; then
+	if test "$withval" = "yes"; then
+		ZONE_FWD_SPPRT=yes
+		AC_SUBST(ZONE_FWD_SPPRT)
+#        	forward-zones-support="yes"
+	fi
+
+#else
+#	forward-zones-support="no"
+fi
+
+
+
 # add option to disable the evil rpath
 ACX_ARG_RPATH
 AC_SUBST(RUNTIME_PATH)

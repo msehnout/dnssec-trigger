@@ -43,7 +43,9 @@
 #ifndef UBHOOKS_H
 #define UBHOOKS_H
 
+#ifdef ZN_FWD_SPPRT
 #include "forwards_data_types.h"
+#endif
 struct cfg;
 struct probe_ip;
 
@@ -109,6 +111,7 @@ void hook_unbound_tcp_upstream(struct cfg* cfg, int tcp80_ip4, int tcp80_ip6,
  */
 void hook_unbound_ssl_upstream(struct cfg* cfg, int ssl443_ip4, int ssl443_ip6);
 
+#ifdef ZN_FWD_SPPRT
 /**
  * //TODO:
  * @param cfg
@@ -154,5 +157,5 @@ LocalZoneConfig* get_unbound_LocalZoneConfig(struct cfg* cfg);
  */
 ZoneConfig* get_unbound_ZoneConfig(struct cfg *cfg);
 
-
+#endif
 #endif /* UBHOOKS_H */

@@ -45,7 +45,9 @@
 #include "cfg.h"
 #include "log.h"
 #include "probe.h"
+#ifdef ZN_FWD_SPPRT
 #include "forwards_data_types_tools.h"
+#endif
 #ifdef USE_WINSOCK
 #include "winrc/win_svc.h"
 #endif
@@ -296,6 +298,7 @@ void hook_unbound_ssl_upstream(struct cfg* cfg, int ssl443_ip4, int ssl443_ip6)
 	ub_has_ssl_upstream = 1;
 }
 
+#ifdef ZN_FWD_SPPRT
 void hook_unbound_zones_add(struct cfg* cfg, char *zone, char *servers, int validate)
 {
     int len = 0;
@@ -561,5 +564,6 @@ ZoneConfig* get_unbound_ZoneConfig(struct cfg *cfg)
 
     return zoneConfig;
 }
+#endif
 
 

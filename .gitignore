@@ -14,3 +14,5 @@ dnssec-triggerd
 dnssec-triggerd.service
 example.conf
 nbproject
+Makefile
+makedist.sh

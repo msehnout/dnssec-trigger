@@ -112,6 +112,7 @@ struct cfg {
 	char* control_key_file;
 	/** certificate file for control */
 	char* control_cert_file;
+#ifdef ZN_FWD_SPPRT
         /** //todo: */
         int use_vpn_global_forwarders;
         
@@ -122,6 +123,7 @@ struct cfg {
         int validate_connection_provided_zones;
         
         int keep_positive_answers;
+#endif
 };
 
 /** simple list of strings */
