@@ -42,7 +42,7 @@
 #ifndef SVR_H
 #define SVR_H
 
-#include "json_data_types.h"
+#include "forwards_data_types.h"
 
 struct cfg;
 struct comm_base;

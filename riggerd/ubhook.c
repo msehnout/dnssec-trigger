@@ -39,11 +39,13 @@
  * This file contains the unbound hooks for adjusting the unbound validating
  * DNSSEC resolver.
  */
+#include <stdio.h>
 #include "config.h"
 #include "ubhook.h"
 #include "cfg.h"
 #include "log.h"
 #include "probe.h"
+#include "forwards_data_types_tools.h"
 #ifdef USE_WINSOCK
 #include "winrc/win_svc.h"
 #endif
@@ -293,3 +295,271 @@ void hook_unbound_ssl_upstream(struct cfg* cfg, int ssl443_ip4, int ssl443_ip6)
 	}
 	ub_has_ssl_upstream = 1;
 }
+
+void hook_unbound_zones_add(struct cfg* cfg, char *zone, char *servers, int validate)
+{
+    int len = 0;
+    len += 3; // for "+i " if any
+    len += strlen(zone);
+    len++; // one space
+    len += strlen(servers);
+    len++; //string delimiter
+    char *args = calloc(len, sizeof (char));
+    if (args == NULL)
+        fatal_exit("out of memory");
+    if (!validate) {
+        strcpy(args, "+i ");
+    }
+    strcat(args, zone);
+    strcat(args, " ");
+    strcat(args, servers);
+
+    ub_ctrl(cfg, "forward_add", args);
+    free(args);
+}
+
+void hook_unbound_zones_remove(struct cfg* cfg, char *zone)
+{
+    ub_ctrl(cfg, "forward_remove", zone);
+
+    char *flush_command;
+    if (cfg->keep_positive_answers) {
+        flush_command = "flush_negative";
+    } else {
+        flush_command = "flush_zone";
+    }
+
+    ub_ctrl(cfg, flush_command, zone);
+    ub_ctrl(cfg, "flush_requestlist", "");
+}
+
+void hook_unbound_local_zones_add(struct cfg* cfg, char *zone, char *type)
+{
+    int len = 0;
+    len += strlen(zone);
+    len++; // one space
+    len += strlen(type);
+    len++; //string delimiter
+    char *args = calloc(len, sizeof (char));
+    if (args == NULL)
+        fatal_exit("out of memory");
+    strcpy(args, zone);
+    strcat(args, " ");
+    strcat(args, type);
+    
+    ub_ctrl(cfg, "local_zone", args);
+
+    free(args);
+}
+
+void hook_unbound_local_zones_remove(struct cfg* cfg, char *zone)
+{
+    ub_ctrl(cfg, "local_zone_remove", zone);
+}
+
+static FILE* ub_ctrl_open_read(struct cfg* cfg, const char* cmd, const char* args)
+{
+    char command[12000];
+    const char* ctrl = "unbound-control";
+#ifdef USE_WINSOCK
+    char* regctrl = NULL;
+#endif
+    FILE *unbound_control = NULL;
+
+#ifdef USE_WINSOCK
+    if ((regctrl = get_registry_unbound_control()) != NULL) {
+        ctrl = regctrl;
+    } else
+#endif
+        if (cfg->unbound_control)
+        ctrl = cfg->unbound_control;
+    verbose(VERB_ALGO, "system %s %s %s", ctrl, cmd, args);
+    snprintf(command, sizeof (command), "%s %s %s", ctrl, cmd, args);
+#ifdef USE_WINSOCK
+    TODO: implement using WINSOCK
+    // r = win_run_cmd(command);
+    free(regctrl);
+#else
+    unbound_control = popen(command, "r");
+    
+#endif
+    return unbound_control;
+}
+
+static void ub_ctrl_close_read(FILE *unbound_control)
+{
+    if(!unbound_control) {
+        log_err("error occurred during unbound-control starting");
+        return;
+    }
+    
+    pclose(unbound_control);
+}
+
+LocalZoneConfig* get_unbound_LocalZoneConfig(struct cfg* cfg)
+{
+    // what if too many requests like at probing for example?
+    FILE *unbound = ub_ctrl_open_read(cfg, "list_local_zones", "");
+    if(unbound == NULL) {
+        return NULL;
+    }
+
+    char *buf = NULL;
+    char word_buf[512] = {0};
+    int word_buf_pos = 0;
+    size_t len = 0;
+    int read = 0;
+
+
+    LocalZoneConfig *localZoneConfig = newLocalZoneConfig();
+    LocalZoneConfig *tmp = newLocalZoneConfig();
+
+    int pos_in_fields = 1;
+    //surpress: changed here a little bit
+    while ((read = getline(&buf, &len, unbound)) != -1) {//deprecated comment: sometimes some chars are missing don't know why
+        for (int i = 0; i <= read; i++) {
+            if ((buf[i] == ' ' || buf[i] == '\n') && word_buf_pos > 0) {
+                if (pos_in_fields == 1) {
+                    char *nm = calloc(word_buf_pos + 1, sizeof (char));
+                    if (nm == NULL)
+                        fatal_exit("out of memory");
+                    strncpy(nm, word_buf, word_buf_pos - 1); // we don't want a dot at the end of a string
+                    tmp->name = nm;
+
+                    pos_in_fields++;
+                    word_buf_pos = 0;
+
+                } else if (pos_in_fields == 2) {
+                    char *tp = calloc(word_buf_pos + 1, sizeof (char));
+                    if (tp == NULL)
+                        fatal_exit("out of memory");
+                    strncpy(tp, word_buf, word_buf_pos);
+                    tmp->type = tp;
+
+                    pos_in_fields++;
+                    word_buf_pos = 0;
+
+                }
+            } else if (buf[i] == ' ' && word_buf_pos == 0) {
+                // do nothing
+            } else {
+                word_buf[word_buf_pos] = *(buf + i); // hope it copies char value
+                word_buf_pos++;
+            }
+
+            if (buf[i] == '\n') {
+                localZoneConfig_append(tmp, localZoneConfig);
+                tmp = newLocalZoneConfig();
+
+                pos_in_fields = 1;
+                word_buf_pos = 0;
+                break;
+            }
+        }
+    }
+
+    // za predpokladu, ze cely vypis konci novym radkem jinak mazeme zaznam nikoliv prazdnou bunku pripravenou k plneni
+    freeLocalZoneConfig(tmp, false); //values may be null
+    ub_ctrl_close_read(unbound);
+    if (buf != NULL)
+        free(buf);
+    return localZoneConfig;
+}
+
+ZoneConfig* get_unbound_ZoneConfig(struct cfg *cfg)
+{
+    // what if too many requests like at probing for example?
+    FILE *unbound = ub_ctrl_open_read(cfg, "list_forwards", "");
+    if(!unbound) {
+        return NULL;
+    }
+
+    char *buf = NULL;
+    char word_buf[512] = {0};
+    int word_buf_pos = 0;
+    size_t len = 0;
+
+    ZoneConfig *zoneConfig = newZoneConfig();
+    ZoneConfig *tmp = newZoneConfig();
+    CharChain *chtmp = newCharChain();
+
+    int pos_in_fields = 1;
+
+    while (getline(&buf, &len, unbound) != -1) { //deprecated comment: sometimes some chars are missing don't know why
+        for (int i = 0; i < len; i++) {
+            if ((buf[i] == ' ' || buf[i] == '\n') && word_buf_pos > 0) {
+                if (pos_in_fields == 1) {
+                    char *nm = calloc(word_buf_pos + 1, sizeof (char));
+                    if (nm == NULL)
+                        fatal_exit("out of memory");
+                    strncpy(nm, word_buf, word_buf_pos - 1); // we don't want a dot at the end of a string
+                    tmp->name = nm;
+
+                    pos_in_fields++;
+                    word_buf_pos = 0;
+
+                } else if (pos_in_fields == 2 || pos_in_fields == 3) {
+                    // should be "IN" or "FORWARD" value we don't want them so skip them
+                    pos_in_fields++;
+                    word_buf_pos = 0;
+
+                } else if (pos_in_fields == 4) {
+                    if (strncmp(word_buf, "+i", 2) == 0) {
+                        tmp->secure = false;
+                    } else {
+                        tmp->secure = true;
+                        char *ip = calloc(word_buf_pos + 1, sizeof (char));
+                        if (ip == NULL) {
+                            fatal_exit("out of memory");
+                        }
+                        strncpy(ip, word_buf, word_buf_pos);
+
+                        charChain_append(chtmp, ip);
+                        //means its ip address
+                    }
+
+                    pos_in_fields++;
+                    word_buf_pos = 0;
+                } else if (pos_in_fields > 4) { // pos is greater
+                    char *ip = calloc(word_buf_pos + 1, sizeof (char));
+                    if (ip == NULL) {
+                        fatal_exit("out of memory");
+                    }
+                    strncpy(ip, word_buf, word_buf_pos);
+
+                    charChain_append(chtmp, ip);
+
+                    pos_in_fields++;
+                    word_buf_pos = 0;
+
+                }
+            } else if (buf[i] == ' ' && word_buf_pos == 0) { // ignore leading spaces if any
+                //do nothing
+            } else {
+                word_buf[word_buf_pos] = *(buf + i); // copy the char value
+                word_buf_pos++;
+            }
+            if (buf[i] == '\n') {
+                tmp->ips = chtmp;
+                chtmp = newCharChain();
+                zoneConfig_append(tmp, zoneConfig);
+                tmp = newZoneConfig();
+
+                pos_in_fields = 1;
+                word_buf_pos = 0;
+                break;
+            }
+        }
+    }
+
+    // za predpokladu, ze cely vypis konci novym radkem jinak mazeme posledni zaznam nikoliv prazdnou bunku pripravenou k plneni
+    freeZoneConfig(tmp, false); //values may be null
+    if (buf != NULL)
+        free(buf);
+    freeCharChain(chtmp);
+    pclose(unbound);
+
+    return zoneConfig;
+}
+
+

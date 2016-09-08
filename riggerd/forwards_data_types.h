@@ -11,8 +11,8 @@
  * Created on 26. srpna 2016, 11:20
  */
 
-#ifndef JSON_DATA_TYPES_H
-#define JSON_DATA_TYPES_H
+#ifndef FORWARDS_DATA_TYPES_H
+#define FORWARDS_DATA_TYPES_H
 
 typedef struct connection Connection;
 typedef struct charChain CharChain;

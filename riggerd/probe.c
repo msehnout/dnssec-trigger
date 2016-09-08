@@ -49,7 +49,6 @@
 #include "reshook.h"
 #include "http.h"
 #include "update.h"
-#include "json_helper.h"
 #include <ldns/ldns.h>
 
 /* create probes for the ip addresses in the string */
@@ -118,56 +117,6 @@ void probe_start(char* ips)
 			svr->http->saw_http_work = 0;
 		}
 	}
-}
-
-void my_probe_start(CharChain* ips) {
-    
-    struct svr* svr = global_svr;
-    
-    if (svr->http) {
-        http_general_delete(svr->http);
-        svr->http = NULL;
-    }
-    if (svr->probes) {
-        /* clear existing probe list */
-        probe_list_delete(svr->probes);
-        // TODO: !!!!! tady by bylo dobre jeste uvolnit pamet connectionChainu pridruzenemu k probes
-        svr->probes = NULL;
-        if (svr->num_probes_done < svr->num_probes) {
-            verbose(VERB_QUERY, "probes cancelled due to fast "
-                    "net change");
-        }
-        svr->num_probes_done = 0;
-        svr->num_probes = 0;
-    }
-
-    /* spawn a probe for every IP address in the list */
-    svr->saw_first_working = 0;
-    svr->saw_direct_work = 0;
-    svr->saw_dnstcp_work = 0;
-    svr->probe_direct = 0;
-    svr->probe_dnstcp = 0;
-    
-    for(CharChain *ip = ips; NULL != ip; ip = ip->next) {
-        probe_spawn(ip->current, 1, 0, 0, DNS_PORT);
-    }
-    
-    svr->num_probes_to_cache = svr->num_probes;
-    /* (if no resulting probes), check result now */
-    if (!svr->probes)
-        probe_cache_done();
-    else if (svr->forced_insecure) {
-        verbose(VERB_OPS, "probe started: but still forced insecure");
-        /* call it right away, so the user does not have to wait */
-        probe_setup_hotspot_signon(svr);
-    } else {
-        /* there are cache DNS, and not forced insecure: check HTTP */
-        if (!svr->http && svr->cfg->num_http_urls != 0) {
-            svr->http = http_general_start(svr);
-            if (!svr->http) log_err("out of memory");
-            svr->http->saw_http_work = 0;
-        }
-    }
 }
 
 void probe_delete(struct probe_ip* p)

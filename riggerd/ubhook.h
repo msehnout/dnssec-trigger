@@ -42,6 +42,8 @@
 
 #ifndef UBHOOKS_H
 #define UBHOOKS_H
+
+#include "forwards_data_types.h"
 struct cfg;
 struct probe_ip;
 
@@ -106,5 +108,51 @@ void hook_unbound_tcp_upstream(struct cfg* cfg, int tcp80_ip4, int tcp80_ip6,
  * @param ssl443_ip6: if true, use those IP addresses.
  */
 void hook_unbound_ssl_upstream(struct cfg* cfg, int ssl443_ip4, int ssl443_ip6);
+
+/**
+ * //TODO:
+ * @param cfg
+ * @param zone
+ * @param servers
+ * @param validate
+ */
+void hook_unbound_zones_add(struct cfg* cfg, char *zone, char *servers, int validate);
+
+/**
+ * //TODO:
+ * @param cfg
+ * @param zone
+ */
+void hook_unbound_zones_remove(struct cfg* cfg, char *zone);
+
+/**
+ * //TODO:
+ * @param cfg
+ * @param zone
+ * @param type
+ */
+void hook_unbound_local_zones_add(struct cfg* cfg, char *zone, char *type);
+
+/**
+ * TODO:
+ * @param cfg
+ * @param zone
+ */
+void hook_unbound_local_zones_remove(struct cfg* cfg, char *zone);
+
+/**
+ * TODO:
+ * @param cfg
+ * @return 
+ */
+LocalZoneConfig* get_unbound_LocalZoneConfig(struct cfg* cfg);
+
+/**
+ * TODO:
+ * @param cfg
+ * @return 
+ */
+ZoneConfig* get_unbound_ZoneConfig(struct cfg *cfg);
+
 
 #endif /* UBHOOKS_H */
