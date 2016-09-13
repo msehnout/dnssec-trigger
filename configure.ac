@@ -566,8 +566,10 @@ AC_ARG_WITH(ldns, AC_HELP_STRING([--with-ldns=PATH],
 	])
 
 AC_ARG_WITH([forward-zones-support], AC_HELP_STRING([--with-forward-zones-support],
-[Set whether enable forward zones support, only Linux feature]),, withval="")
-if test "`uname`" = "Linux"; then
+[Set whether enable forward zones support, only POSIX OSes feature]),, withval="")
+# we don't provide this functionality for NON-POSIX OSes e.g. windows
+# for enabling this functionality on NON-POSIX systems some functions must be rewrited with destination system's API
+if test "$USE_WINSOCK" != 1; then
 	if test "$withval" = "yes"; then
 		ZONE_FWD_SPPRT=yes
 		AC_SUBST(ZONE_FWD_SPPRT)
