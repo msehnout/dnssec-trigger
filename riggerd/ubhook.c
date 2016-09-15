@@ -566,4 +566,11 @@ ZoneConfig* get_unbound_ZoneConfig(struct cfg *cfg)
 }
 #endif
 
+void hook_unbound_set_negative_cache_ttl(struct cfg *cfg)
+{
+    // ttl should be in config
+    char *ttl = "5";
+    ub_ctrl(cfg, "set_option cache-max-negative-ttl: ", ttl);
+}
+
 
