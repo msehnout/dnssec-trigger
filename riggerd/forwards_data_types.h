@@ -18,13 +18,13 @@
 
 typedef struct connection Connection;
 typedef struct charChain CharChain;
-typedef enum type Type;
+typedef enum connection_type Type;
 typedef struct connectionChain ConnectionChain;
 typedef struct assocChain AssocChain;
 typedef struct zoneConfig ZoneConfig;
 typedef struct localZoneConfig LocalZoneConfig;
 
-enum type {
+enum connection_type {
     VPN,
     WIFI,
     OTHER,
