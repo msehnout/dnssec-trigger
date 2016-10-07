@@ -177,6 +177,8 @@ endif
 
 COMPILE=$(CC) $(CPPFLAGS) $(CFLAGS)
 LINK=$(strip $(CC) $(RUNTIME_PATH) $(CFLAGS) $(LDFLAGS))
+# TODO: available only in case of forward zones enabled
+UNIT_TESTS=unit_tests/string_list.c
 
 .PHONY:	clean realclean doc lint all install uninstall test strip 
 
@@ -187,7 +189,9 @@ $(BUILD)%.o:    $(srcdir)/%.c
 
 all:	$(COMMON_OBJ) dnssec-triggerd$(EXEEXT) dnssec-trigger-control$(EXEEXT) dnssec-trigger-control-setup $(makehook) $(makegui) example.conf dnssec-trigger.8 dnssec-triggerd.service
 
-test:	
+test:	$(UNIT_TESTS)
+	gcc -o unit_tests/test $(UNIT_TESTS) $(BUILD)riggerd/forwards_data_types_tools.o $(BUILD)vendor/ccan/json/json.o $(BUILD)riggerd/log.o
+	./unit_tests/test
 	@echo done
 
 example.conf:	$(srcdir)/example.conf.in Makefile
