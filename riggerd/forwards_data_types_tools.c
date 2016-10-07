@@ -596,13 +596,11 @@ bool string_list_contains(const struct string_list* list, const char* value, con
 	 * Iterate through the whole list
 	 */
 	for (struct string_entry* iter = list->first; NULL != iter; iter = iter->next) {
-		size_t max_len = (len < iter->length) ? len : iter->length;
-
 		/*
 		 * We already know size of both buffers, so we take advantage of that
 		 * and also of short-cut evaluation.
 		 */
-		if (len == iter->length && strncmp(iter->string, value, max_len) == 0) {
+		if (len == iter->length && strncmp(iter->string, value, len) == 0) {
 			return true;
 		}
 	}
