@@ -47,6 +47,26 @@ LocalZoneConfig* localZoneConfig_append(LocalZoneConfig *what, LocalZoneConfig *
 
 ConnectionChain* parse_connections(char* input);
 
+/**
+ * Initialize a new list of strings
+ * @param list: New list
+ */
+void string_list_init(struct string_list* list);
+
+/**
+ * Clear the list and free all contained buffers
+ * @param list: List to be cleared. To free the structure itself is caller responsibility.
+ */
+void string_list_clear(struct string_list* list);
+
+/**
+ * Push new string at the end of the list. The string
+ * is copied into the node.
+ * @param list: List to append to
+ * @param new_value: String to be appended
+ * @param buffer_size: Size of the buffer from which the string is copied
+ */
+void string_list_push_back(struct string_list* list, char* new_value, size_t buffer_size);
 
 #endif /* FORWARDS_DATA_TYPES_TOOLS_H */
 

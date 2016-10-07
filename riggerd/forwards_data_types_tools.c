@@ -534,3 +534,42 @@ ConnectionChain* parse_connections(char* input)
     return cons;
 }
 
+void string_list_init(struct string_list* list)
+{
+	list->first = NULL;
+}
+
+void string_list_clear(struct string_list* list)
+{
+	struct string_entry* iter = list->first;
+	while (NULL != iter) {
+		struct string_entry* node = iter;
+		iter = node->next;
+		free(node->string);
+		free(node);
+	}
+}
+
+static void* calloc_or_die(size_t size) {
+	void* mem = calloc(1, size);
+	if (NULL == mem){
+		fatal_exit("out of memory");
+	} else {
+		return mem;
+	}
+}
+
+void string_list_push_back(struct string_list* list, char* new_value, size_t buffer_size)
+{
+	size_t len = strnlen(new_value, buffer_size);
+	struct string_entry** node = &list->first;
+
+	while (NULL != *node) {
+		node = &(*node)->next;
+	}
+
+	*node = (struct string_entry*) calloc_or_die(sizeof(struct string_entry));
+	(*node)->length = len;
+	(*node)->string = (char*) calloc_or_die(len+1);
+	strncpy((*node)->string, new_value, len);
+}

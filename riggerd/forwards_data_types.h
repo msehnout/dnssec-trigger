@@ -11,6 +11,8 @@
  * Created on 26. srpna 2016, 11:20
  */
 
+#include <stdlib.h>
+
 #ifndef FORWARDS_DATA_TYPES_H
 #define FORWARDS_DATA_TYPES_H
 
@@ -71,6 +73,30 @@ struct localZoneConfig {
 
     char *name;
     char *type; // in future the type could be ENUM
+};
+
+/**
+ * Double-linked list of strings
+ */
+struct string_list {
+	/** A linked list of strings */
+	struct string_entry *first;
+};
+
+/**
+ * One node in the string list
+ */
+struct string_entry {
+	/** Next in list */
+	struct string_entry* next;
+	/** Previous in list */
+	struct string_entry* prev;
+	/** String owned by this list
+	 * Do not use this pointer elsewhere
+	 */
+	char* string;
+	/** Length of the string buffer */
+	size_t length;
 };
 
 #endif /* JSON_DATA_TYPES_H */
