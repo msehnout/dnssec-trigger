@@ -573,6 +573,7 @@ if test "$USE_WINSOCK" != 1; then
 	if test "$withval" = "yes"; then
 		ZONE_FWD_SPPRT=yes
 		AC_SUBST(ZONE_FWD_SPPRT)
+                AC_DEFINE(ZONE_FWD_SPPRT, 1, [Support forward zones])
 #        	forward-zones-support="yes"
 	fi
 

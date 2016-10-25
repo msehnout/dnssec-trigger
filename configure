@@ -7442,6 +7442,9 @@ if test "$USE_WINSOCK" != 1; then
 	if test "$withval" = "yes"; then
 		ZONE_FWD_SPPRT=yes
 
+
+$as_echo "#define ZONE_FWD_SPPRT 1" >>confdefs.h
+
 #        	forward-zones-support="yes"
 	fi
 
