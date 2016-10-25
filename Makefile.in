@@ -147,7 +147,7 @@ endif
 KEYGEN_OBJ=$(addprefix $(BUILD),$(KEYGEN_SRC:.c=.o)) $(COMPAT_OBJ)
 RIGGERD_SRC=riggerd/riggerd.c riggerd/log.c riggerd/netevent.c riggerd/rbtree.c riggerd/mini_event.c riggerd/net_help.c riggerd/winsock_event.c riggerd/fptr_wlist.c riggerd/cfg.c riggerd/svr.c riggerd/probe.c riggerd/ubhook.c riggerd/reshook.c riggerd/http.c riggerd/update.c
 ifeq "$(ZN_FWD_SPPRT)" "yes"
-RIGGERD_SRC+= vendor/ccan/json/json.c riggerd/forwards.c riggerd/forwards_data_types_tools.c
+RIGGERD_SRC+= vendor/ccan/json/json.c riggerd/forwards.c riggerd/forwards_data_types_tools.c riggerd/string_list.c
 endif
 ifeq "$(hooks)" "windows"
 RIGGERD_SRC+=winrc/netlist.c winrc/win_svc.c winrc/w_inst.c
